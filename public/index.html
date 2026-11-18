@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Collaborative Editor</title>
+</head>
+<body>
+  <textarea id="editor" rows="20" cols="80"></textarea>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const room = "doc1";
+    const editor = document.getElementById("editor");
+
+    socket.emit("join-room", room);
+
+    editor.addEventListener("input", () => {
+      socket.emit("edit", { room, data: editor.value });
+    });
+
+    socket.on("edit", (data) => {
+      editor.value = data;
+    });
+  </script>
+</body>
+</html>
