@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fish Drawing Board</title>
+  <link rel="stylesheet" href="/draw.css" />
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Color your fish</h1>
+      <p>Draw inside the lines or pick a random pattern, then release it into the aquarium.</p>
+    </div>
+    <div class="group">
+      <a class="aquarium-link" href="http://localhost:3001" target="_blank">Open aquarium ↗</a>
+      <button id="release" class="primary">Release into aquarium</button>
+    </div>
+  </header>
+
+  <!-- Two canvases stacked: the coloring underneath, the outline on top -->
+  <div id="fish">
+    <canvas id="board" width="1000" height="456"></canvas>
+    <canvas id="outline" width="1000" height="456"></canvas>
+  </div>
+
+  <div class="toolbar">
+    <div class="group" id="swatches">
+      <!-- color buttons are added by draw.js -->
+      <label class="swatch custom-color" title="Pick any color">
+        <input type="color" id="custom-color" />
+      </label>
+    </div>
+
+    <div class="group">
+      <span class="size-preview"><span id="size-dot"></span></span>
+      <input type="range" id="size" min="2" max="60" value="14" title="Brush size" />
+    </div>
+
+    <div class="group tools">
+      <button id="brush" class="active">Brush</button>
+      <button id="eraser">Eraser</button>
+    </div>
+
+    <div class="group">
+      <button id="randomize" class="soft">Random pattern</button>
+      <button id="clear" class="soft">Clear</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/patterns.js"></script>
+  <script src="/draw.js"></script>
+</body>
+</html>
