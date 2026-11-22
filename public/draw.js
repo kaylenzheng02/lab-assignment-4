@@ -1,7 +1,8 @@
 // Drawing board
-// Color inside the fish outline, or fill it with a random pattern.
+// Color inside the fish outline (or fill it with a random pattern), then add eyes.
 // Every open board shows the same fish, and "Release" sends it to the aquarium.
 // PATTERNS, PALETTES, makeRandom and pickRandom come from patterns.js.
+// EYES comes from eyes.js.
 
 const socket = io();
 const ROOM = "board1";
@@ -12,8 +13,9 @@ const COLORS = [
 ];
 
 // ---- Page elements ----
-const board = document.getElementById("board");     // the coloring
-const outline = document.getElementById("outline"); // the black fish outline, on top
+const board = document.getElementById("board");          // the coloring
+const outline = document.getElementById("outline");      // the black fish outline
+const eyeLayer = document.getElementById("eyes");        // the eyes, on top
 const swatches = document.getElementById("swatches");
 const customColor = document.getElementById("custom-color");
 const sizeSlider = document.getElementById("size");
@@ -23,9 +25,12 @@ const eraserButton = document.getElementById("eraser");
 const randomButton = document.getElementById("randomize");
 const clearButton = document.getElementById("clear");
 const releaseButton = document.getElementById("release");
+const eyeButtons = document.getElementById("eye-buttons");
+const removeEyesButton = document.getElementById("remove-eyes");
 const toast = document.getElementById("toast");
 
 const pen = board.getContext("2d");
+const eyePen = eyeLayer.getContext("2d");
 const WIDTH = board.width;
 const HEIGHT = board.height;
 
@@ -33,9 +38,11 @@ const HEIGHT = board.height;
 const fishShape = document.createElement("canvas");
 fishShape.width = WIDTH;
 fishShape.height = HEIGHT;
+let outsideFish = null; // for each pixel: 1 if it's outside the fish
 
 let currentColor = COLORS[0];
-let isErasing = false;
+let currentTool = "brush"; // "brush", "eraser" or "eye"
+let currentEye = null;     // which eye to place, when the tool is "eye"
 let isDrawing = false;
 let lastPoint = null;
 
@@ -46,14 +53,14 @@ let lastPoint = null;
 async function setUpFish() {
   const picture = await loadImage("/fish-outline.png");
   const pixels = getPixels(picture);
-  const outside = findOutside(pixels);
+  outsideFish = findOutside(pixels);
 
   const shape = new ImageData(WIDTH, HEIGHT);
   const lines = new ImageData(WIDTH, HEIGHT);
 
   for (let i = 0; i < WIDTH * HEIGHT; i++) {
     // Inside the fish: white
-    if (!outside[i]) {
+    if (!outsideFish[i]) {
       shape.data.set([255, 255, 255, 255], i * 4);
     }
     // The outline: black, more see-through where the picture is lighter
@@ -118,18 +125,29 @@ function findOutside(pixels) {
   return outside;
 }
 
+function isInsideFish(point) {
+  const x = Math.floor(point.x * WIDTH);
+  const y = Math.floor(point.y * HEIGHT);
+  return !outsideFish[y * WIDTH + x];
+}
+
 
 // ---------- Painting the board ----------
 
-// Everything drawn is an "item": either a line or a whole-fish pattern.
+// Everything drawn is an "item": a line, a pattern, an eye, or "clear the eyes".
 // The same items are sent to the other boards, so they all match.
 function drawItem(item) {
-  if (item.type === "pattern") {
-    drawPattern(item);
-  } else {
+  if (item.type === "line") {
     drawLine(item);
+    keepInsideFish();
+  } else if (item.type === "pattern") {
+    drawPattern(item);
+    keepInsideFish();
+  } else if (item.type === "eye") {
+    drawEye(item);
+  } else if (item.type === "clear-eyes") {
+    clearEyes();
   }
-  keepInsideFish();
 }
 
 // Points are stored as fractions (0 to 1) of the board,
@@ -147,21 +165,37 @@ function drawLine(line) {
 }
 
 function drawPattern(pattern) {
-  clearBoard();
+  clearColoring();
   pen.globalCompositeOperation = "source-over";
   const paint = PATTERNS[pattern.name];
   paint(pen, WIDTH, HEIGHT, pattern.colors, makeRandom(pattern.seed));
 }
 
-// Cut away anything that went outside the fish
+function drawEye(eye) {
+  eyePen.save();
+  eyePen.translate(eye.x * WIDTH, eye.y * HEIGHT);
+  EYES[eye.style](eyePen, eye.size);
+  eyePen.restore();
+}
+
+// Cut away any coloring that went outside the fish
 function keepInsideFish() {
   pen.globalCompositeOperation = "destination-in";
   pen.drawImage(fishShape, 0, 0);
   pen.globalCompositeOperation = "source-over";
 }
 
-function clearBoard() {
+function clearColoring() {
   pen.clearRect(0, 0, WIDTH, HEIGHT);
+}
+
+function clearEyes() {
+  eyePen.clearRect(0, 0, WIDTH, HEIGHT);
+}
+
+function clearEverything() {
+  clearColoring();
+  clearEyes();
 }
 
 // Draw it here, then send it to everyone else on this board
@@ -171,7 +205,7 @@ function addItem(item) {
 }
 
 
-// ---------- Drawing with the mouse or a finger ----------
+// ---------- Using the mouse or a finger on the fish ----------
 
 // Mouse/finger position as fractions (0 to 1) of the board
 function getPoint(event) {
@@ -183,8 +217,15 @@ function getPoint(event) {
 }
 
 board.addEventListener("pointerdown", (event) => {
+  const point = getPoint(event);
+
+  if (currentTool === "eye") {
+    placeEye(point);
+    return;
+  }
+
   isDrawing = true;
-  lastPoint = getPoint(event);
+  lastPoint = point;
   board.setPointerCapture(event.pointerId);
 });
 
@@ -198,13 +239,28 @@ board.addEventListener("pointermove", (event) => {
     to: point,
     color: currentColor,
     size: Number(sizeSlider.value),
-    erase: isErasing,
+    erase: currentTool === "eraser",
   });
   lastPoint = point;
 });
 
 board.addEventListener("pointerup", () => (isDrawing = false));
 board.addEventListener("pointercancel", () => (isDrawing = false));
+
+function placeEye(point) {
+  if (!isInsideFish(point)) {
+    showToast("Put the eye on the fish!");
+    return;
+  }
+
+  addItem({
+    type: "eye",
+    style: currentEye,
+    x: point.x,
+    y: point.y,
+    size: 20 + Number(sizeSlider.value) * 2, // the size slider sets eye size too
+  });
+}
 
 
 // ---------- Colors, brush size and tools ----------
@@ -230,25 +286,58 @@ function chooseColor(color, swatch) {
   chooseTool("brush"); // picking a color means you want to draw
 }
 
+// tool is "brush", "eraser" or "eye" (with the eye's style)
+function chooseTool(tool, eyeStyle = null) {
+  currentTool = tool;
+  currentEye = eyeStyle;
+
+  brushButton.classList.toggle("active", tool === "brush");
+  eraserButton.classList.toggle("active", tool === "eraser");
+  document.querySelectorAll(".eye-button").forEach((button) => {
+    button.classList.toggle("selected", button.dataset.eye === eyeStyle);
+  });
+
+  board.style.cursor = tool === "eye" ? "copy" : "crosshair";
+  updateSizeDot();
+}
+
 // Show a dot the size and color of the brush
 function updateSizeDot() {
   const size = Number(sizeSlider.value) / 2 + 2;
   sizeDot.style.width = `${size}px`;
   sizeDot.style.height = `${size}px`;
-  sizeDot.style.background = isErasing ? "white" : currentColor;
+  sizeDot.style.background = currentTool === "eraser" ? "white" : currentColor;
 }
 
 sizeSlider.addEventListener("input", updateSizeDot);
-
-function chooseTool(tool) {
-  isErasing = tool === "eraser";
-  brushButton.classList.toggle("active", !isErasing);
-  eraserButton.classList.toggle("active", isErasing);
-  updateSizeDot();
-}
-
 brushButton.addEventListener("click", () => chooseTool("brush"));
 eraserButton.addEventListener("click", () => chooseTool("eraser"));
+
+
+// ---------- Eye tray ----------
+
+// One button per eye style, showing a small preview of it
+for (const style of Object.keys(EYES)) {
+  const button = document.createElement("button");
+  button.className = "eye-button";
+  button.dataset.eye = style;
+  button.title = style;
+
+  const preview = document.createElement("canvas");
+  preview.width = 32;
+  preview.height = 32;
+  const previewPen = preview.getContext("2d");
+  previewPen.translate(16, 16);
+  EYES[style](previewPen, 26);
+
+  button.append(preview);
+  button.addEventListener("click", () => chooseTool("eye", style));
+  eyeButtons.append(button);
+}
+
+removeEyesButton.addEventListener("click", () => {
+  addItem({ type: "clear-eyes" });
+});
 
 
 // ---------- Buttons ----------
@@ -267,7 +356,7 @@ clearButton.addEventListener("click", () => {
 });
 
 releaseButton.addEventListener("click", () => {
-  if (!hasColor()) {
+  if (!hasPixels(board) && !hasPixels(eyeLayer)) {
     showToast("Color in the fish first!");
     return;
   }
@@ -292,16 +381,16 @@ function showToast(message) {
   toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
 }
 
-// True if any pixel on the board has been colored
-function hasColor() {
-  const pixels = pen.getImageData(0, 0, WIDTH, HEIGHT).data;
+// True if anything has been drawn on this canvas
+function hasPixels(canvas) {
+  const pixels = canvas.getContext("2d").getImageData(0, 0, WIDTH, HEIGHT).data;
   for (let i = 3; i < pixels.length; i += 4) {
     if (pixels[i] > 0) return true;
   }
   return false;
 }
 
-// The finished fish: a white body with the coloring on top (no black outline)
+// The finished fish: a white body, the coloring, then the eyes (no black outline)
 function makeFishImage() {
   const fish = document.createElement("canvas");
   fish.width = 300;
@@ -310,6 +399,7 @@ function makeFishImage() {
   const fishPen = fish.getContext("2d");
   fishPen.drawImage(fishShape, 0, 0, fish.width, fish.height);
   fishPen.drawImage(board, 0, 0, fish.width, fish.height);
+  fishPen.drawImage(eyeLayer, 0, 0, fish.width, fish.height);
 
   return fish.toDataURL("image/png");
 }
@@ -318,9 +408,9 @@ function makeFishImage() {
 // ---------- Server messages ----------
 
 socket.on("draw", drawItem);
-socket.on("clear", clearBoard);
+socket.on("clear", clearEverything);
 socket.on("history", (items) => {
-  clearBoard();
+  clearEverything();
   items.forEach(drawItem);
 });
 

@@ -15,7 +15,7 @@ const io = new Server(server);
 
 app.use(express.static("public"));
 
-// Everything drawn on each board (lines and patterns),
+// Everything drawn on each board (lines, patterns and eyes),
 // so people who join later see the same picture
 const boards = {};
 
@@ -37,10 +37,6 @@ io.on("connection", (socket) => {
 
   socket.on("draw", ({ room, item }) => {
     if (!boards[room]) boards[room] = [];
-
-    // A pattern covers the whole fish, so anything drawn before it no longer matters
-    if (item.type === "pattern") boards[room] = [];
-
     boards[room].push(item);
     socket.to(room).emit("draw", item);
   });

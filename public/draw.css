@@ -1,11 +1,10 @@
 :root {
   --text: #12324a;
   --muted: #5b7487;
-  --accent: #0b84c6;
-  --accent-dark: #086a9f;
+  --accent: #1b2a4e;      /* navy */
+  --accent-dark: #0f1a33;
   --border: #d6e6ef;
   --soft-bg: #eef5f9;
-  --shadow: 0 10px 30px rgba(18, 50, 74, 0.12);
   --page-width: min(1000px, 100%);
 }
 
@@ -20,9 +19,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-family: system-ui, sans-serif;
+  font-family: "Nunito", sans-serif;
   color: var(--text);
-  background: linear-gradient(#e9f6fc, #cfe9f5);
+  background: white;
 }
 
 button {
@@ -44,19 +43,15 @@ header {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   gap: 12px;
   margin-bottom: 16px;
 }
 
 h1 {
   margin: 0;
-  font-size: 28px;
-}
-
-header p {
-  margin: 4px 0 0;
-  color: var(--muted);
+  font-size: 30px;
+  font-weight: 800;
 }
 
 header .group {
@@ -80,9 +75,6 @@ header .group {
   position: relative;
   width: var(--page-width);
   aspect-ratio: 1000 / 456;
-  background: white;
-  border-radius: 20px;
-  box-shadow: var(--shadow);
 }
 
 #fish canvas {
@@ -97,7 +89,8 @@ header .group {
   touch-action: none; /* stop the page scrolling while drawing on a phone */
 }
 
-#outline {
+#outline,
+#eyes {
   pointer-events: none; /* clicks pass through to the board underneath */
 }
 
@@ -107,15 +100,11 @@ header .group {
 .toolbar {
   width: var(--page-width);
   margin-top: 16px;
-  padding: 12px 16px;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 14px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: var(--shadow);
 }
 
 .group {
@@ -182,13 +171,13 @@ input[type="range"] {
   gap: 0;
   padding: 3px;
   background: var(--soft-bg);
-  border-radius: 999px;
+  border-radius: 0;
 }
 
 .tools button {
   padding: 6px 14px;
   border: none;
-  border-radius: 999px;
+  border-radius: 0;
   background: transparent;
   color: var(--muted);
 }
@@ -203,7 +192,7 @@ input[type="range"] {
 .soft {
   padding: 8px 14px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 0;
   background: white;
   color: var(--text);
 }
@@ -215,10 +204,10 @@ input[type="range"] {
 .primary {
   padding: 10px 22px;
   border: none;
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--accent);
   color: white;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .primary:hover {
@@ -231,6 +220,50 @@ input[type="range"] {
 }
 
 
+/* ---------- Eye tray ---------- */
+
+.eye-tray {
+  width: var(--page-width);
+  margin-top: 14px;
+  padding-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.tray-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.eye-button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 0;
+}
+
+.eye-button:hover {
+  background: var(--soft-bg);
+}
+
+.eye-button.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+#remove-eyes {
+  margin-left: auto;
+}
+
+
 /* ---------- Pop-up message ---------- */
 
 #toast {
@@ -238,7 +271,7 @@ input[type="range"] {
   bottom: 24px;
   left: 50%;
   padding: 10px 18px;
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--text);
   color: white;
   opacity: 0;

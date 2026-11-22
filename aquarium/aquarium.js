@@ -10,7 +10,7 @@ const pen = tank.getContext("2d");
 const MAX_FISH = 20; // past this, the oldest fish swim out of the tank
 const fishInTank = [];
 const bubbles = [];
-const ripples = [];
+const stressMarks = []; // the angry 💢 marks that pop up where you tap
 
 const background = new Image();
 background.src = "ocean.jpg";
@@ -203,7 +203,7 @@ function drawBubbles(time, step) {
 // ---------- Tapping the tank ----------
 
 tank.addEventListener("pointerdown", (event) => {
-  ripples.push({ x: event.clientX, y: event.clientY, radius: 0, opacity: 0.8 });
+  stressMarks.push({ x: event.clientX, y: event.clientY, age: 0 });
 
   for (const fish of fishInTank) {
     if (fish.leaving) continue; // don't turn a leaving fish back around
@@ -220,23 +220,52 @@ tank.addEventListener("pointerdown", (event) => {
   }
 });
 
-function drawRipples(step) {
-  for (let i = ripples.length - 1; i >= 0; i--) {
-    const ripple = ripples[i];
-    ripple.radius += 3 * step;
-    ripple.opacity -= 0.02 * step;
+// Each mark pops in quickly, holds for a moment, then fades out (about 1 second total)
+function drawStressMarks(step) {
+  for (let i = stressMarks.length - 1; i >= 0; i--) {
+    const mark = stressMarks[i];
+    mark.age += step / 60; // in seconds
 
-    if (ripple.opacity <= 0) {
-      ripples.splice(i, 1);
+    if (mark.age > 1) {
+      stressMarks.splice(i, 1);
       continue;
     }
 
-    pen.strokeStyle = `rgba(255, 255, 255, ${ripple.opacity})`;
-    pen.lineWidth = 2;
-    pen.beginPath();
-    pen.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
-    pen.stroke();
+    const popIn = Math.min(mark.age / 0.12, 1);              // 0 → 1 in the first 0.12s
+    const size = 30 * (0.4 + 0.6 * popIn);
+    const opacity = mark.age < 0.6 ? 1 : (1 - mark.age) / 0.4; // fade over the last 0.4s
+
+    pen.save();
+    pen.globalAlpha = opacity;
+    drawStressMark(mark.x, mark.y, size);
+    pen.restore();
   }
+}
+
+// The 💢 shape: four curved pieces arranged in a diamond, each bending in toward the middle
+function drawStressMark(x, y, size) {
+  const gap = size * 0.3; // space between the pieces
+
+  pen.save();
+  pen.translate(x, y);
+  pen.lineCap = "round";
+
+  for (let i = 0; i < 4; i++) {
+    pen.beginPath();
+    pen.moveTo(gap, -size);                // tip of one arm
+    pen.quadraticCurveTo(gap, -gap, size, -gap); // bend in toward the center, out to the other arm
+
+    pen.strokeStyle = "white";             // white edge so it stands out on the water
+    pen.lineWidth = size * 0.42;
+    pen.stroke();
+    pen.strokeStyle = "#e3262d";           // red middle
+    pen.lineWidth = size * 0.24;
+    pen.stroke();
+
+    pen.rotate(Math.PI / 2);               // next quarter
+  }
+
+  pen.restore();
 }
 
 
@@ -259,7 +288,7 @@ function animate(now) {
   removeFishThatLeft();
 
   drawBubbles(time, step);
-  drawRipples(step);
+  drawStressMarks(step);
 
   requestAnimationFrame(animate);
 }
