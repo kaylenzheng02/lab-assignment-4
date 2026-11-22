@@ -5,7 +5,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001; // Render sets PORT; locally it's 3001
 const MAX_FISH = 20; // when the tank is full, the oldest fish leaves
 
 const app = express();

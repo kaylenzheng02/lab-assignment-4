@@ -6,12 +6,20 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 
-const PORT = 3000;
-const AQUARIUM_URL = "http://localhost:3001";
+// On a host like Render these come from the service's settings;
+// on your own computer the defaults are used.
+const PORT = process.env.PORT || 3000;
+const AQUARIUM_URL = process.env.AQUARIUM_URL || "http://localhost:3001";
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+
+// The home page opens the drawing board (the text editor is still at /index.html)
+app.get("/", (req, res) => res.redirect("/draw.html"));
+
+// The "Open aquarium" link goes here, so it works both locally and online
+app.get("/aquarium", (req, res) => res.redirect(AQUARIUM_URL));
 
 app.use(express.static("public"));
 
