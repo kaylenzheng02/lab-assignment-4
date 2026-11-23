@@ -13,7 +13,7 @@ const bubbles = [];
 const stressMarks = []; // the angry 💢 marks that pop up where you tap
 
 const background = new Image();
-background.src = "ocean.jpg";
+background.src = "assets/ocean.jpg";
 
 let tankWidth = 0;
 let tankHeight = 0;
@@ -274,7 +274,7 @@ function drawStressMark(x, y, size) {
 
 // "Bark Huayra" by redpanal.org, CC BY-SA 3.0, via Wikimedia Commons
 // https://commons.wikimedia.org/wiki/File:Bark_Huayra.ogg
-const bark = new Audio("bark.mp3");
+const bark = new Audio("assets/bark.mp3");
 
 function playBark() {
   const sound = bark.cloneNode(); // a fresh copy, so quick taps can overlap
