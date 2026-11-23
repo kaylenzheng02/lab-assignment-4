@@ -205,6 +205,7 @@ function drawBubbles(time, step) {
 tank.addEventListener("pointerdown", (event) => {
   stressMarks.push({ x: event.clientX, y: event.clientY, age: 0 });
   playBark();
+  startMusic(); // only does anything on the first tap
 
   for (const fish of fishInTank) {
     if (fish.leaving) continue; // don't turn a leaving fish back around
@@ -280,6 +281,54 @@ function playBark() {
   const sound = bark.cloneNode(); // a fresh copy, so quick taps can overlap
   sound.volume = 0.7;
   sound.play().catch(() => {});   // if the browser blocks sound, just stay quiet
+}
+
+
+// ---------- Background music ----------
+
+// Plays assets/music.mp3 on a loop, quietly, with the high sounds muffled
+// so it sounds like it's coming through water.
+// Browsers only allow sound after someone interacts with the page,
+// so the music starts on the first tap.
+const MUSIC_FILE = "assets/music.mp3";
+const MUSIC_VOLUME = 0.35;   // 0 = silent, 1 = full volume
+const UNDERWATER = 500;      // lower = more muffled (normal music goes up to ~20000)
+
+let musicStarted = false;
+
+function startMusic() {
+  if (musicStarted) return;
+  musicStarted = true;
+
+  const music = new Audio(MUSIC_FILE);
+  music.loop = true;
+
+  const sound = new AudioContext();
+  const source = sound.createMediaElementSource(music);
+
+  // Muffle: only let the low sounds through, like hearing music underwater
+  const muffle = sound.createBiquadFilter();
+  muffle.type = "lowpass";
+  muffle.frequency.value = UNDERWATER;
+
+  // Slowly sway the muffling up and down, like moving water
+  const sway = sound.createOscillator();
+  sway.frequency.value = 0.15; // one full sway about every 7 seconds
+  const swayAmount = sound.createGain();
+  swayAmount.gain.value = UNDERWATER * 0.3;
+  sway.connect(swayAmount);
+  swayAmount.connect(muffle.frequency);
+  sway.start();
+
+  const volume = sound.createGain();
+  volume.gain.value = MUSIC_VOLUME;
+
+  // music → muffle → volume → speakers
+  source.connect(muffle);
+  muffle.connect(volume);
+  volume.connect(sound.destination);
+
+  music.play().catch(() => console.log(`No background music found at ${MUSIC_FILE}`));
 }
 
 
