@@ -204,7 +204,7 @@ function drawBubbles(time, step) {
 
 tank.addEventListener("pointerdown", (event) => {
   stressMarks.push({ x: event.clientX, y: event.clientY, age: 0 });
-  playBoing();
+  playBark();
 
   for (const fish of fishInTank) {
     if (fish.leaving) continue; // don't turn a leaving fish back around
@@ -270,51 +270,16 @@ function drawStressMark(x, y, size) {
 }
 
 
-// ---------- Boing sound ----------
+// ---------- Bark sound ----------
 
-// The boing is made with the browser's Web Audio API, so no sound file is needed.
-// Browsers only allow sound after someone taps, which is exactly when it plays.
-let audio = null;
+// "Bark Huayra" by redpanal.org, CC BY-SA 3.0, via Wikimedia Commons
+// https://commons.wikimedia.org/wiki/File:Bark_Huayra.ogg
+const bark = new Audio("bark.mp3");
 
-function playBoing() {
-  if (!audio) audio = new AudioContext();
-  if (audio.state === "suspended") audio.resume();
-
-  const now = audio.currentTime;
-  const length = 0.7;              // seconds
-  const pitch = random(0.85, 1.2); // each boing sounds a little different
-
-  // The main tone: starts high and drops, like a spring settling
-  const tone = audio.createOscillator();
-  tone.type = "triangle";
-  tone.frequency.setValueAtTime(500 * pitch, now);
-  tone.frequency.exponentialRampToValueAtTime(140 * pitch, now + length);
-
-  // The wobble: shakes the pitch up and down, slowing as the spring settles
-  const wobble = audio.createOscillator();
-  wobble.frequency.setValueAtTime(18, now);
-  wobble.frequency.linearRampToValueAtTime(8, now + length);
-
-  const wobbleAmount = audio.createGain();
-  wobbleAmount.gain.setValueAtTime(90 * pitch, now);
-  wobbleAmount.gain.exponentialRampToValueAtTime(5, now + length);
-
-  wobble.connect(wobbleAmount);
-  wobbleAmount.connect(tone.frequency);
-
-  // Volume: starts instantly, then fades out
-  const volume = audio.createGain();
-  volume.gain.setValueAtTime(0.0001, now);
-  volume.gain.exponentialRampToValueAtTime(0.4, now + 0.02);
-  volume.gain.exponentialRampToValueAtTime(0.0001, now + length);
-
-  tone.connect(volume);
-  volume.connect(audio.destination);
-
-  tone.start(now);
-  wobble.start(now);
-  tone.stop(now + length);
-  wobble.stop(now + length);
+function playBark() {
+  const sound = bark.cloneNode(); // a fresh copy, so quick taps can overlap
+  sound.volume = 0.7;
+  sound.play().catch(() => {});   // if the browser blocks sound, just stay quiet
 }
 
 
