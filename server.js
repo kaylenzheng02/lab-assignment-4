@@ -9,7 +9,14 @@ const { Server } = require("socket.io");
 // On a host like Render these come from the service's settings;
 // on your own computer the defaults are used.
 const PORT = process.env.PORT || 3000;
-const AQUARIUM_URL = process.env.AQUARIUM_URL || "http://localhost:3001";
+const AQUARIUM_URL = cleanUrl(process.env.AQUARIUM_URL || "http://localhost:3001");
+
+// Forgive small mistakes in the setting: extra spaces, a missing https://, a "/" at the end
+function cleanUrl(url) {
+  url = url.trim().replace(/\/+$/, "");
+  if (!url.startsWith("http")) url = "https://" + url;
+  return url;
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -68,13 +75,17 @@ async function sendToAquarium(image) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ image }),
     });
+    if (!response.ok) {
+      console.log(`The aquarium at ${AQUARIUM_URL} answered with error ${response.status}`);
+    }
     return response.ok;
-  } catch {
-    console.log(`Could not reach the aquarium at ${AQUARIUM_URL}`);
+  } catch (error) {
+    console.log(`Could not reach the aquarium at ${AQUARIUM_URL}: ${error.message}`);
     return false;
   }
 }
 
 server.listen(PORT, () => {
-  console.log(`Drawing board: http://localhost:${PORT}/draw.html`);
+  console.log(`Drawing board running on port ${PORT}`);
+  console.log(`Sending fish to the aquarium at ${AQUARIUM_URL}`);
 });
